@@ -76,7 +76,7 @@ SRC += $(BOOTDIR)/syscalls/syscalls.c
 SRC += ./src/it.c
 SRC += ./src/gpio.c
 SRC += ./src/tim.c
-# SRC += ./src/spi.c
+SRC += ./src/spi.c
 SRC += ./src/adc.c
 SRC += ./src/dma.c
 SRC += ./src/usart.c
@@ -87,8 +87,10 @@ SRC += ./src/test_functions.c
 SRC += ./src/screen.c
 SRC += ./src/ssd1306_display.c
 SRC += ./src/ssd1306_gfx.c
+SRC += ./src/tmag_5170.c
 # SRC += ./src/comm.c
-# SRC += ./src/dsp.c
+SRC += ./src/dsp.c
+SRC += ./src/measure.c
 
 
 ## Core Support

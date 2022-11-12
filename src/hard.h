@@ -63,8 +63,8 @@
 
 //GPIOB pin0
 #define CSN    ((GPIOB->ODR & 0x0001) != 0)
-#define CSN_ON    (GPIOB->BSRR = 0x00000001)
-#define CSN_OFF    (GPIOB->BSRR = 0x00010000)
+#define CSN_OFF    (GPIOB->BSRR = 0x00000001)
+#define CSN_ON    (GPIOB->BSRR = 0x00010000)
 
 //GPIOB pin1    nc
 

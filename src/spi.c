@@ -9,11 +9,17 @@
 //---------------------------------------------
 #include "spi.h"
 #include "stm32g0xx.h"
+#include "hard.h"
+
 
 // Module Private Types Constants and Macros -----------------------------------
-#define RCC_SPI1_CLK    (RCC->APB2ENR & 0x00001000)
-#define RCC_SPI1_CLK_ON    (RCC->APB2ENR |= 0x00001000)
-#define RCC_SPI1_CLK_OFF    (RCC->APB2ENR &= ~0x00001000)
+#define RCC_SPI1_CLK    (RCC->APBENR2 & 0x00001000)
+#define RCC_SPI1_CLK_ON    (RCC->APBENR2 |= 0x00001000)
+#define RCC_SPI1_CLK_OFF    (RCC->APBENR2 &= ~0x00001000)
+
+#define RCC_SPI2_CLK    (RCC->APBENR1 & 0x00004000)
+#define RCC_SPI2_CLK_ON    (RCC->APBENR1 |= 0x00004000)
+#define RCC_SPI2_CLK_OFF    (RCC->APBENR1 &= ~0x00004000)
 
 
 // Externals -------------------------------------------------------------------
@@ -55,14 +61,28 @@ void SPI_Config(void)
 #error "Select Peripheral use on spi.h"
 #endif
 
-#ifdef SPI_DATA_VALID_ON_FALLING_CLK
+#ifdef SPI_DATA_VALID_ON_RISING_CLK
+#ifdef SPI_CLK_IDLE_RESET
+    //CPOL Low; CPHA first clock
+    SPI1->CR1 |= SPI_CR1_SSM | SPI_CR1_SSI;
+#endif
+#ifdef SPI_CLK_IDLE_SET
     //CPOL High; CPHA first clock
     SPI1->CR1 |= SPI_CR1_CPOL | SPI_CR1_SSM | SPI_CR1_SSI;
+#endif    
 #endif
-#ifdef SPI_DATA_VALID_ON_RISING_CLK
-    //CPOL High; CPHA second clock
+    
+#ifdef SPI_DATA_VALID_ON_FALLING_CLK
+#ifdef SPI_CLK_IDLE_RESET    
+    //CPOL Low; CPHA second clock
+    SPI1->CR1 |= SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_CPHA;
+#endif
+#ifdef SPI_CLK_IDLE_SET    
+    //CPOL High; CPHA second clock    
     SPI1->CR1 |= SPI_CR1_CPOL | SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_CPHA;
 #endif
+#endif
+    
     //thresh 8 bits; data 8 bits;
     SPI1->CR2 = SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
 
@@ -99,7 +119,7 @@ unsigned char SPI_Send_Receive (unsigned char a)
     	asm("nop");
     }
 
-    return (SPI1->DR & 0x0F);
+    return (SPI1->DR);
 }
 
 
@@ -155,5 +175,18 @@ unsigned char SPI_Receive_Single (void)
     dummy = (unsigned char) SPI1->DR;
     return dummy;
 }
+
+
+void SPI_Chip_Select_On (void)
+{
+    CSN_ON;
+}
+
+
+void SPI_Chip_Select_Off (void)
+{
+    CSN_OFF;    
+}
+
 
 //--- end of file ---//

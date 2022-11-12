@@ -22,6 +22,11 @@
 #include "screen.h"
 #include "i2c.h"
 
+#include "spi.h"
+#include "tmag_5170.h"
+
+#include "dsp.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -55,6 +60,11 @@ void TF_I2C_Check_Address (void);
 void TF_Oled_Screen (void);
 void TF_Oled_Screen_Int (void);
 
+void TF_TMAG_Version (void);
+void TF_TMAG_Version_Serial (void);
+void TF_TMAG_Z_Serial (void);
+void TF_TMAG_Z_Oled (void);
+void TF_TMAG_Z_Max_Sample (void);
 
 
 // Module Functions ------------------------------------------------------------
@@ -66,13 +76,19 @@ void TF_Hardware_Tests (void)
     // TF_Usart2_TxRx ();
 
     // TF_Usart2_Adc_Dma ();
-    TF_Usart2_Batt_Voltage ();
+    // TF_Usart2_Batt_Voltage ();
 
     // TF_I2C_Send_Addr ();
     // TF_I2C_Send_Data ();    
 
     // TF_Oled_Screen ();
     // TF_Oled_Screen_Int ();
+
+    // TF_TMAG_Version ();
+    // TF_TMAG_Version_Serial ();
+    TF_TMAG_Z_Serial ();
+    // TF_TMAG_Z_Oled ();
+    // TF_TMAG_Z_Max_Sample ();
     
 }
 
@@ -404,292 +420,252 @@ void TF_Oled_Screen_Int (void)
 #endif
 
 
-// void TF_Usart2_Adc_Polling (void)
-// {
-//     for (unsigned char i = 0; i < 5; i++)
-//     {
-//         LED_ON;
-//         Wait_ms(250);
-//         LED_OFF;
-//         Wait_ms(250);
-//     }
+void TF_TMAG_Version (void)
+{
+    unsigned short reg = 0;
     
-//     Usart2Config();
-
-//     //-- ADC Init
-//     AdcConfig();
-//     ADC1->CR |= ADC_CR_ADSTART;
-
-//     unsigned short cntr = 0;
-//     char s_to_send [100] = { 0 };
-//     Usart2Send("\nTesting ADC with polling...\n");
-
-//     while (1)
-//     {
-//         if (ADC1->ISR & ADC_ISR_EOC)
-//         {
-//             ADC1->ISR |= ADC_ISR_EOC;
-//             if (cntr < 10000)
-//                 cntr++;
-//             else
-//             {
-//                 sprintf(s_to_send, "last ADC: %d\n", (unsigned short) ADC1->DR);
-//                 Usart2Send(s_to_send);
-//                 cntr = 0;
-//             }
-//         }
-//     }
-// }
-
-
-// void TF_Usart2_Adc_Interrupt (void)
-// {
-//     for (unsigned char i = 0; i < 5; i++)
-//     {
-//         LED_ON;
-//         Wait_ms(250);
-//         LED_OFF;
-//         Wait_ms(250);
-//     }
+    Wait_ms(50);    //for supply stability
     
-//     Usart2Config();
+    // init SPI
+    SPI_Config ();
 
-//     //-- ADC Init
-//     AdcConfig();
-//     ADC1->CR |= ADC_CR_ADSTART;
+    while (1)
+    {
+        LED_ON;
+        Wait_ms (50);
+        
+        // get tmag version
+        reg = TMAG_5170_Read_Register (TEST_CONFIG);
 
-//     unsigned short cntr = 0;
-//     char s_to_send [100] = { 0 };
-//     Usart2Send("\nTesting ADC with Interrupts...\n");
+        if (((reg & 0x00F0) == 0x40) ||    //rev A1
+            ((reg & 0x00F0) == 0x50))    //rev A2
+            LED_ON;
+        else
+            LED_OFF;
 
-//     while (1)
-//     {
-//         if (adc_int_seq_ready)
-//         {
-//             adc_int_seq_ready = 0;
-//             if (LED)
-//                 LED_OFF;
-//             else
-//                 LED_ON;
+        Wait_ms (1000);
+    }
+    
+}
+
+
+void TF_TMAG_Version_Serial (void)
+{
+    char s_to_send [50];
+    unsigned short reg = 0;
+    
+    Wait_ms(50);    //for supply stability
+
+    // init Usart
+    Usart2Config();
+    
+    // init SPI
+    SPI_Config ();
+
+    while (1)
+    {
+        LED_ON;
+        Wait_ms (50);
+        
+        // get tmag version
+        reg = TMAG_5170_Read_Register (TEST_CONFIG);
+
+        sprintf(s_to_send, "TEST reg: 0x%04x\n", reg);
+        Usart2Send(s_to_send);
+        
+
+        if (((reg & 0x00F0) == 0x40) ||    //rev A1
+            ((reg & 0x00F0) == 0x50))    //rev A2
+            LED_ON;
+        else
+            LED_OFF;
+
+        Wait_ms (1000);
+    }
+}
+
+
+void TF_TMAG_Z_Serial (void)
+{
+    char s_to_send [50];
+    unsigned short reg = 0;
+    
+    Wait_ms(50);    //for supply stability
+
+    // init Usart
+    Usart2Config();
+    
+    // init SPI
+    SPI_Config ();
+
+    // init Tmag config
+    TMAG_5170_Init ();
+
+    while (1)
+    {
+        LED_ON;
+        Wait_ms (50);
+
+        unsigned char ready = 0;
+        TMAG_5170_Start_Convertion ();        
+
+        do {
+            reg = TMAG_5170_Read_Register (CONV_STATUS);
+            if ((reg & 0x2000) ||    // conv_rdy bit13
+                (reg & 0x0400))    // z_rdy bit10
+                ready = 1;
             
-//             if (cntr < 10000)
-//                 cntr++;
-//             else
-//             {
-//                 sprintf(s_to_send, "V_Sense_4V: %d V_Sense_12V: %d\n",
-//                         V_Sense_4V,
-//                         V_Sense_12V);
-//                 Usart2Send(s_to_send);
-//                 cntr = 0;
-//             }
-//         }
-//     }
-// }
-
-
-
-
-// void TF_Usart2_Flash_Empty_Page (void)
-// {
-//     for (unsigned char i = 0; i < 5; i++)
-//     {
-//         LED_ON;
-//         Wait_ms(250);
-//         LED_OFF;
-//         Wait_ms(250);
-//     }
-    
-//     Usart2Config();
-
-//     char s_to_send [100] = { 0 };
-//     unsigned char * p;
-//     p = (unsigned char *) PAGE15_ADDR;
-    
-//     Usart2Send("\nReading Flash Data...\n");
-
-//     for (unsigned char i = 0; i < 64; i+=8)
-//     {
-//         sprintf(s_to_send, "0x%x %d %d %d %d %d %d %d %d\n",
-//                 (unsigned int) (p + i),
-//                 *(p + i + 0),
-//                 *(p + i + 1),
-//                 *(p + i + 2),
-//                 *(p + i + 3),
-//                 *(p + i + 4),
-//                 *(p + i + 5),
-//                 *(p + i + 6),
-//                 *(p + i + 7));
+        } while (!ready);
         
-//         Usart2Send(s_to_send);
-//         Wait_ms(20);
-//     }
+        // get tmag z-axis
+        reg = TMAG_5170_Read_Register (Z_CH_RESULT);
 
-//     Usart2Send("\nBlanking flash...\n");
-//     Wait_ms(500);
-//     if (Flash_ErasePage(FLASH_PAGE_FOR_BKP, 1) == FLASH_COMPLETE)
-//     {
-//         Usart2Send("Blank OK\n");
-//         Wait_ms(100);
-//     }
-//     else
-//     {
-//         Usart2Send("Blank NOK\n");
-//         Wait_ms(100);
-//     }
-
-//     Usart2Send("\nReading Flash Data...\n");
-
-//     for (unsigned char i = 0; i < 64; i+=8)
-//     {
-//         sprintf(s_to_send, "0x%x %d %d %d %d %d %d %d %d\n",
-//                 (unsigned int) (p + i),
-//                 *(p + i + 0),
-//                 *(p + i + 1),
-//                 *(p + i + 2),
-//                 *(p + i + 3),
-//                 *(p + i + 4),
-//                 *(p + i + 5),
-//                 *(p + i + 6),
-//                 *(p + i + 7));
+        short twos = reg;
+        sprintf(s_to_send, "z-axis: 0x%04x 2s: %d 2s>>4: %d\n",
+                reg,
+                twos,
+                (twos >> 4));
+        Usart2Send(s_to_send);
         
-//         Usart2Send(s_to_send);
-//         Wait_ms(20);
-//     }
+        Wait_ms (100);
+        int total = TMAG_5170_Convert_Meas_to_B (reg);
+        sprintf(s_to_send, "z-axis: %3d Gauss\n", total);
+        Usart2Send(s_to_send);
+        
+        Wait_ms (900);        
+    }
+}
+
+
+void TF_TMAG_Z_Oled (void)
+{
+    char s_to_send [50];
+    unsigned short reg = 0;
+    unsigned short data = 0;    
     
-//     while (1)
-//     {
-//         Wait_ms(300);
-//         if (LED)
-//             LED_OFF;
-//         else
-//             LED_ON;
+    // OLED Init
+    Wait_ms(500);    //for supply stability
+    I2C1_Init();
+    Wait_ms(10);
 
-//     }
-// }
+    // first screen
+    SCREEN_Init();
 
+    timer_standby = 2000;
+    SCREEN_ShowText2(
+        "Gausstek ",
+        "    Meter",
+        "Kirno    ",
+        "Intl. LLC"
+        );
 
-// void TF_Usart2_Flash_Write_Data (void)
-// {
-//     for (unsigned char i = 0; i < 5; i++)
-//     {
-//         LED_ON;
-//         Wait_ms(250);
-//         LED_OFF;
-//         Wait_ms(250);
-//     }
+    do {
+        display_update_int_state_machine();        
+    } while (timer_standby);
     
-//     Usart2Config();
-
-//     char s_to_send [100] = { 0 };
-//     unsigned char * p;
-//     p = (unsigned char *) PAGE15_ADDR;
+    // init Usart
+    Usart2Config();
     
-//     Usart2Send("\nReading Flash Data...\n");
+    // init SPI
+    SPI_Config ();
 
-//     for (unsigned char i = 0; i < 64; i+=8)
-//     {
-//         sprintf(s_to_send, "0x%x %d %d %d %d %d %d %d %d\n",
-//                 (unsigned int) (p + i),
-//                 *(p + i + 0),
-//                 *(p + i + 1),
-//                 *(p + i + 2),
-//                 *(p + i + 3),
-//                 *(p + i + 4),
-//                 *(p + i + 5),
-//                 *(p + i + 6),
-//                 *(p + i + 7));
+    // init Tmag config
+    //   disable crc
+    TMAG_5170_Disable_Crc ();
+    //   enable z conversion
+    data = (0x0004 << 6);
+    TMAG_5170_Write_Register (SENSOR_CONFIG, data);
+
+    while (1)
+    {
+        if (!timer_standby)
+        {
+            timer_standby = 500;
+            unsigned char ready = 0;
+            TMAG_5170_Start_Convertion ();        
+
+            do {
+                reg = TMAG_5170_Read_Register (CONV_STATUS);
+                if ((reg & 0x2000) ||    // conv_rdy bit13
+                    (reg & 0x0400))    // z_rdy bit10
+                    ready = 1;
+            
+            } while (!ready);
         
-//         Usart2Send(s_to_send);
-//         Wait_ms(20);
-//     }
+            // get tmag z-axis
+            reg = TMAG_5170_Read_Register (Z_CH_RESULT);
 
-//     //write mem conf
-//     struct mem_conf_st {
-//         uint32_t d0;
-//         uint32_t d1;
-//         uint32_t d2;
-//         uint32_t d3;
-//     };
-
-//     struct mem_conf_st mem_conf;
-//     mem_conf.d0 = 0x5555;
-//     mem_conf.d1 = 0xAAAA;
-//     mem_conf.d2 = 0x0000;
-//     mem_conf.d3 = 0x7777;
-
-//     Usart2Send("\nWriting Flash...\n");
-//     Wait_ms(300);
-//     if (Flash_WriteConfigurations((uint32_t *) &mem_conf, sizeof(mem_conf)) == FLASH_COMPLETE)
-//         Usart2Send("Seems all good\n");
-
-//     Wait_ms(300);
-//     for (unsigned char i = 0; i < 64; i+=8)
-//     {
-//         sprintf(s_to_send, "0x%x %x %x %x %x %x %x %x %x\n",
-//                 (unsigned int) (p + i),
-//                 *(p + i + 0),
-//                 *(p + i + 1),
-//                 *(p + i + 2),
-//                 *(p + i + 3),
-//                 *(p + i + 4),
-//                 *(p + i + 5),
-//                 *(p + i + 6),
-//                 *(p + i + 7));
+            short twos = reg;
         
-//         Usart2Send(s_to_send);
-//         Wait_ms(20);
-//     }
+            int total = (int) twos;
+            total = total * 2 * 500;
+            total >>= 16;
 
-//     Wait_ms(300);
-//     Usart2Send("\nVerifing Flash Backuped Data...\n");
-//     Wait_ms(300);
+            sprintf(s_to_send, "z-axis: %3dG\n", total);
+            Usart2Send(s_to_send);
 
-//     struct mem_conf_st mem_backuped;
-//     memcpy(&mem_backuped, (uint32_t *) FLASH_ADDRESS_FOR_BKP, sizeof(mem_backuped));
-
-//     if ((mem_conf.d0 == mem_backuped.d0) &&
-//         (mem_conf.d1 == mem_backuped.d1) &&
-//         (mem_conf.d2 == mem_backuped.d2) &&
-//         (mem_conf.d3 == mem_backuped.d3))
-//         Usart2Send("Verified OK!!!\n");
-//     else
-//         Usart2Send("Verified NOK errors in backuped data\n");
-        
-//     while (1)
-//     {
-//         Wait_ms(300);
-//         if (LED)
-//             LED_OFF;
-//         else
-//             LED_ON;
-
-//     }
-// }
+            
+            sprintf(s_to_send, "Bp: %3dG", total);
+            SCREEN_ShowText2(
+                s_to_send,
+                "         ",
+                "         ",
+                "         "
+                );
+        }
+        display_update_int_state_machine();
+    }
+}
 
 
-// void TF_ReadMemory (void)
-// {
-//     char s_to_send [100] = { 0 };
-//     unsigned char * p;
-//     p = (unsigned char *) PAGE15_ADDR;
+void TF_TMAG_Z_Max_Sample (void)
+{
+    char s_to_send [50];
+    unsigned short reg = 0;
+    unsigned short data = 0;    
     
-//     Usart2Send("\nReading Flash Data...\n");
+    // init Usart
+    Usart2Config();
+    
+    // init SPI
+    SPI_Config ();
 
-//     for (unsigned char i = 0; i < 127; i+=8)
-//     {
-//         sprintf(s_to_send, "0x%x %d %d %d %d %d %d %d %d\n",
-//                 (unsigned int) (p + i),
-//                 *(p + i + 0),
-//                 *(p + i + 1),
-//                 *(p + i + 2),
-//                 *(p + i + 3),
-//                 *(p + i + 4),
-//                 *(p + i + 5),
-//                 *(p + i + 6),
-//                 *(p + i + 7));
+    // init Tmag config
+    //   disable crc
+    TMAG_5170_Disable_Crc ();
+    //   enable z conversion
+    data = (0x0004 << 6);
+    TMAG_5170_Write_Register (SENSOR_CONFIG, data);
+
+    int samples_cnt = 0;
+    
+    while (1)
+    {
+        unsigned char ready = 0;
+        TMAG_5170_Start_Convertion ();        
+
+        do {
+            reg = TMAG_5170_Read_Register (CONV_STATUS);
+            if ((reg & 0x2000) ||    // conv_rdy bit13
+                (reg & 0x0400))    // z_rdy bit10
+                ready = 1;
+            
+        } while (!ready);
         
-//         Usart2Send(s_to_send);
-//         Wait_ms(20);
-//     }
-// }
+        // get tmag z-axis
+        reg = TMAG_5170_Read_Register (Z_CH_RESULT);
+
+        samples_cnt++;
+
+        if (!timer_standby)
+        {
+            // one second pass
+            sprintf(s_to_send, "samples: %d\n", samples_cnt);
+            Usart2Send(s_to_send);
+            samples_cnt = 0;
+            timer_standby = 1000;
+        }
+    }
+}
+
 //--- end of file ---//

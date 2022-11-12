@@ -3,10 +3,10 @@
 // ## @Editor: Emacs - ggtags
 // ## @TAGS:   Global
 // ##
-// #### SCREEN.H ##############################
+// #### MEASURE.H #############################
 //---------------------------------------------
-#ifndef _SCREEN_H_
-#define _SCREEN_H_
+#ifndef _MEASURE_H_
+#define _MEASURE_H_
 
 
 // Config Defines --------------------------------------------------------------
@@ -16,7 +16,8 @@
     
 
 // Module Exported Functions ---------------------------------------------------
-void SCREEN_Init (void);
-void SCREEN_ShowText2 (char *, char *, char *, char *);
+void Measure_Loop (void);
+void Measure_Timer (void);
 
-#endif    /* _SCREEN_H_ */
+
+#endif    /* _MEASURE_H_ */

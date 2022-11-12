@@ -11,9 +11,17 @@
 #define _SPI_H__
 
 
-/* Uncomment the line below if you will use the SPI peripheral as a Master */
+// Module Exported Types Constants and Macros ----------------------------------
+
+
+// Module Configurations -------------------------------------------------------
+// Uncomment the line below if you will use the SPI peripheral as a Master
 #define SPI_MASTER
 // #define SPI_SLAVE
+
+// clock when idle
+#define SPI_CLK_IDLE_RESET
+// #define SPI_CLK_IDLE_SET
 
 //When to validate the Data sended
 #define SPI_DATA_VALID_ON_RISING_CLK
@@ -27,6 +35,8 @@ void SPI_Busy_Wait (void);
 void SPI_Send_Multiple (unsigned char);
 void SPI_Send_Single (unsigned char);
 unsigned char SPI_Receive_Single (void);
+void SPI_Chip_Select_On (void);
+void SPI_Chip_Select_Off (void);
 
 
 #endif    /* _SPI_H__ */
