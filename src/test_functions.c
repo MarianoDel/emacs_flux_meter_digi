@@ -70,7 +70,7 @@ void TF_TMAG_Z_Max_Sample (void);
 // Module Functions ------------------------------------------------------------
 void TF_Hardware_Tests (void)
 {
-    // TF_Led ();
+    TF_Led ();
     // TF_SW_UP ();
     // TF_SW_DWN ();
     // TF_Usart2_TxRx ();
@@ -86,7 +86,7 @@ void TF_Hardware_Tests (void)
 
     // TF_TMAG_Version ();
     // TF_TMAG_Version_Serial ();
-    TF_TMAG_Z_Serial ();
+    // TF_TMAG_Z_Serial ();
     // TF_TMAG_Z_Oled ();
     // TF_TMAG_Z_Max_Sample ();
     

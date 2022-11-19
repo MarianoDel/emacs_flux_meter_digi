@@ -89,6 +89,7 @@ int main(void)
     //--- Begin Production Program ---
     // --- Start Hardware Configs
     Wait_ms(500);    //for supply stability
+    LED_ON;
     
     // init I2C
     I2C1_Init();
@@ -103,11 +104,32 @@ int main(void)
     SCREEN_Init();
 
     timer_standby = 2000;
+#ifdef GAUSSTEK_METER
     SCREEN_ShowText2(
         "Gausstek ",
+        "  Flux   ",
         "    Meter",
+        "         "        
+        );
+#endif
+#ifdef INFINTY_METER
+    SCREEN_ShowText2(
+        "Infinity ",
+        "  Clinics",        
+        " Flux    ",
+        "   Meter "
+        );    
+#endif
+    do {
+        display_update_int_state_machine();        
+    } while (timer_standby);
+
+    timer_standby = 2000;
+    SCREEN_ShowText2(
         "Kirno    ",
-        "Intl. LLC"
+        "  Intl.  ",
+        "    LLC  ",
+        "         "        
         );
 
     do {

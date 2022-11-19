@@ -14,6 +14,9 @@
 
 
 //----------- Defines For Configuration -------------
+//----------- Welcome Message -------------
+#define GAUSSTEK_METER    // show gausstek welcome msg
+// #define INFINTY_METER    // show infinity welcome msg
 
 //----------- Hardware Board Version -------------
 #define HARDWARE_VER_1_0    // original version
@@ -44,6 +47,11 @@
 
 #if (!defined FIRMWARE_VER_1_0)
 #error "define firmware version on hard.h"
+#endif
+
+#if (!defined GAUSSTEK_METER) && \
+    (!defined INFINTY_METER)
+#error "define welcome msg on hard.h"
 #endif
 
 
